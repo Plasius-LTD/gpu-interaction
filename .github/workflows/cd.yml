@@ -1,0 +1,135 @@
+name: CD (Publish to npm)
+
+on:
+  workflow_dispatch:
+    inputs:
+      npm_tag:
+        description: "npm dist-tag"
+        required: false
+        type: string
+        default: "latest"
+      run_validation:
+        description: "Run lint, typecheck, audit, tests, and build before publishing"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: npm-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Require main branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF:-}" != "refs/heads/main" ]]; then
+            echo "npm publication is only allowed from refs/heads/main."
+            echo "Received: ${GITHUB_REF:-<empty>}"
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Pin npm version from packageManager
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm_version="$(node -p "const pm=require('./package.json').packageManager||''; if (!pm.startsWith('npm@')) throw new Error('Expected npm packageManager'); pm.slice(4)")"
+          npm install --global "npm@${npm_version}"
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci --no-fund --no-audit
+
+      - name: Validate package metadata
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PKG_NAME="$(node -p "require('./package.json').name || ''")"
+          PKG_VERSION="$(node -p "require('./package.json').version || ''")"
+          PKG_PRIVATE="$(node -p "String(Boolean(require('./package.json').private))")"
+          PKG_ACCESS="$(node -p "(require('./package.json').publishConfig && require('./package.json').publishConfig.access) || ''")"
+
+          if [ -z "$PKG_NAME" ] || [ -z "$PKG_VERSION" ]; then
+            echo "package.json must declare name and version."
+            exit 1
+          fi
+
+          if [ "$PKG_PRIVATE" = "true" ]; then
+            echo "Cannot publish a private package."
+            exit 1
+          fi
+
+          echo "package_name=$PKG_NAME" >> "$GITHUB_OUTPUT"
+          echo "package_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_access=$PKG_ACCESS" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure version is not already published
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PKG_NAME="${{ steps.pkg.outputs.package_name }}"
+          PKG_VERSION="${{ steps.pkg.outputs.package_version }}"
+
+          if npm view "$PKG_NAME@$PKG_VERSION" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "Version already exists on npm: $PKG_NAME@$PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Run validation
+        if: ${{ inputs.run_validation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run lint
+          npm run typecheck
+          npm run audit:npm
+          npm run test:coverage
+          npm run build
+
+      - name: Verify public package contents
+        shell: bash
+        run: npm run pack:check
+
+      - name: Publish package
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN is required."
+            exit 1
+          fi
+
+          PUBLISH_ARGS=("--provenance" "--tag" "${{ inputs.npm_tag }}" "--registry" "https://registry.npmjs.org")
+
+          if [ "${{ steps.pkg.outputs.package_access }}" = "public" ]; then
+            PUBLISH_ARGS=("--access" "public" "${PUBLISH_ARGS[@]}")
+          fi
+
+          npm publish "${PUBLISH_ARGS[@]}"
