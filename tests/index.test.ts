@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   createGpuInteractionRegistry,
   normalizeGpuInteractionPhrase,
+  resolveGpuInteractionActionByEntityId,
+  resolveGpuInteractionActionFromHit,
   resolveGpuInteractionActionAtPoint,
   resolveGpuInteractionActionAtUv,
   resolveGpuInteractionActionByPhrase,
+  resolveGpuInteractionPointFromUv,
+  type GpuInteractionResolvedHit,
+  type GpuInteractionRenderHit,
   type GpuInteractionSurfaceAction,
 } from "../src/index.js";
 
@@ -27,6 +32,17 @@ const actions: readonly GpuInteractionSurfaceAction[] = [
     surfaceId: "context",
     bounds: { x: 16, y: 420, width: 240, height: 40 },
     payload: { command: "Track" },
+  },
+];
+
+const rendererActions: readonly GpuInteractionSurfaceAction[] = [
+  {
+    ...actions[0]!,
+    entityId: "entity:nav-panel",
+  },
+  {
+    ...actions[1]!,
+    entityIds: ["entity:track-button", "entity:quest-context"],
   },
 ];
 
@@ -108,4 +124,111 @@ describe("@plasius/gpu-interaction", () => {
     expect(registry.invokePhrase("run track")).toBe(true);
     expect(invoked).toEqual(["command:track"]);
   });
+
+  it("converts UV coordinates into stable pixel coordinates", () => {
+    expect(
+      resolveGpuInteractionPointFromUv({
+        u: 0.0525,
+        v: 0.1513,
+        width: 420,
+        height: 760,
+      })
+    ).toEqual({
+      x: 22.05,
+      y: 114.988,
+    });
+  });
+
+  it("can resolve actions directly from renderer entity ids", () => {
+    expect(resolveGpuInteractionActionByEntityId(rendererActions, "entity:nav-panel")?.id).toBe(
+      "module:mcc-core"
+    );
+    expect(
+      resolveGpuInteractionActionByEntityId(rendererActions, "entity:track-button")?.id
+    ).toBe("command:track");
+    expect(
+      resolveGpuInteractionActionByEntityId(rendererActions, "entity:quest-context", "context")
+        ?.id
+    ).toBe("command:track");
+    expect(resolveGpuInteractionActionByEntityId(rendererActions, "missing-entity")).toBeUndefined();
+  });
+
+  it("returns explicit renderer-hit outcomes for hit, miss, environment, emissive, and transparent cases", () => {
+    const miss = resolveGpuInteractionActionFromHit(rendererActions, { kind: "miss" });
+    const environment = resolveGpuInteractionActionFromHit(rendererActions, {
+      kind: "environment",
+      point: { x: 128, y: 64 },
+    });
+    const emissive = resolveGpuInteractionActionFromHit(rendererActions, {
+      kind: "emissive",
+      entityId: "entity:track-button",
+    });
+    const transparent = resolveGpuInteractionActionFromHit(rendererActions, {
+      kind: "transparent",
+      point: { x: 24, y: 430 },
+      entityId: "entity:track-button",
+    });
+    const entityHit = resolveGpuInteractionActionFromHit(rendererActions, {
+      kind: "surface",
+      entityId: "entity:track-button",
+    });
+    const uvHit = resolveGpuInteractionActionFromHit(
+      rendererActions,
+      {
+        kind: "surface",
+        surfaceId: "nav",
+        uv: { u: 0.0525, v: 0.1513 },
+      },
+      { width: 420, height: 760 }
+    );
+
+    expectResolvedHit(miss, { hitKind: "miss" });
+    expectResolvedHit(environment, {
+      hitKind: "environment",
+      point: { x: 128, y: 64 },
+    });
+    expectResolvedHit(emissive, {
+      hitKind: "emissive",
+      entityId: "entity:track-button",
+    });
+    expectResolvedHit(transparent, {
+      hitKind: "transparent",
+      entityId: "entity:track-button",
+      point: { x: 24, y: 430 },
+    });
+    expectResolvedHit(entityHit, {
+      hitKind: "surface",
+      entityId: "entity:track-button",
+      actionId: "command:track",
+    });
+    expectResolvedHit(uvHit, {
+      hitKind: "surface",
+      actionId: "module:mcc-core",
+      point: {
+        x: 22.05,
+        y: 114.988,
+      },
+      uv: { u: 0.0525, v: 0.1513 },
+      surfaceId: "nav",
+    });
+  });
 });
+
+function expectResolvedHit(
+  actual: GpuInteractionResolvedHit<GpuInteractionSurfaceAction>,
+  expected: {
+    readonly hitKind: GpuInteractionRenderHit["kind"];
+    readonly actionId?: string;
+    readonly entityId?: string;
+    readonly point?: { readonly x: number; readonly y: number };
+    readonly uv?: { readonly u: number; readonly v: number };
+    readonly surfaceId?: string;
+  }
+): void {
+  expect(actual.hit.kind).toBe(expected.hitKind);
+  expect(actual.action?.id).toBe(expected.actionId);
+  expect(actual.entityId).toEqual(expected.entityId);
+  expect(actual.point).toEqual(expected.point);
+  expect(actual.uv).toEqual(expected.uv);
+  expect(actual.surfaceId).toEqual(expected.surfaceId);
+}
