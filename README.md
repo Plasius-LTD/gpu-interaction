@@ -26,6 +26,7 @@ npm install @plasius/gpu-interaction
 
 - describing actions on 3D-rendered UI surfaces
 - mapping surface-local hit regions from UV or pixel coordinates
+- consuming normalized renderer hit metadata, including entity-id driven selection
 - dispatching action scripts through registered handlers
 - resolving simple voice phrases to the same action descriptors used by pointer, gaze, or script entry points
 
@@ -36,6 +37,7 @@ The package deliberately does not execute arbitrary JavaScript from script strin
 ```ts
 import {
   createGpuInteractionRegistry,
+  resolveGpuInteractionActionFromHit,
   resolveGpuInteractionActionAtUv,
 } from "@plasius/gpu-interaction";
 
@@ -73,7 +75,36 @@ if (action) {
 }
 
 registry.invokePhrase("open mcc core", { source: "voice" });
+
+const rendererHit = resolveGpuInteractionActionFromHit(
+  [
+    {
+      ...actions[0],
+      entityId: "entity:module-nav",
+    },
+  ],
+  {
+    kind: "surface",
+    entityId: "entity:module-nav",
+    surfaceId: "system-nav",
+    uv: { u: 0.2, v: 0.24 },
+  },
+  {
+    width: 420,
+    height: 760,
+  }
+);
+
+if (rendererHit.action) {
+  registry.invokeAction(rendererHit.action, {
+    source: "pointer",
+    point: rendererHit.point,
+    uv: rendererHit.uv,
+  });
+}
 ```
+
+`resolveGpuInteractionActionFromHit` returns the renderer hit classification unchanged. Non-action cases such as `miss`, `environment`, `emissive`, and `transparent` remain explicit so consumers can branch on them without guessing from `undefined` coordinates alone.
 
 ## Governance
 

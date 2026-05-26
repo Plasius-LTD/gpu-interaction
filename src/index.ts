@@ -32,6 +32,11 @@ export interface GpuInteractionBounds {
   readonly height: number;
 }
 
+export interface GpuInteractionEntityBinding {
+  readonly entityId?: string;
+  readonly entityIds?: readonly string[];
+}
+
 export interface GpuInteractionActionDescriptor<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -45,9 +50,36 @@ export interface GpuInteractionActionDescriptor<
 
 export interface GpuInteractionSurfaceAction<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
-> extends GpuInteractionActionDescriptor<TPayload> {
+> extends GpuInteractionActionDescriptor<TPayload>,
+    GpuInteractionEntityBinding {
   readonly surfaceId: string;
   readonly bounds: GpuInteractionBounds;
+}
+
+export type GpuInteractionRenderHitKind =
+  | "surface"
+  | "miss"
+  | "environment"
+  | "emissive"
+  | "transparent";
+
+export interface GpuInteractionRenderHit {
+  readonly kind: GpuInteractionRenderHitKind;
+  readonly entityId?: string;
+  readonly surfaceId?: string;
+  readonly point?: GpuInteractionPoint;
+  readonly uv?: GpuInteractionUvPoint;
+}
+
+export interface GpuInteractionResolvedHit<
+  TAction extends GpuInteractionSurfaceAction = GpuInteractionSurfaceAction,
+> {
+  readonly hit: GpuInteractionRenderHit;
+  readonly action?: TAction;
+  readonly entityId?: string;
+  readonly surfaceId?: string;
+  readonly point?: GpuInteractionPoint;
+  readonly uv?: GpuInteractionUvPoint;
 }
 
 export interface GpuInteractionInvokeContext {
@@ -142,10 +174,59 @@ export function resolveGpuInteractionActionAtUv<
   actions: readonly TAction[],
   uv: GpuInteractionUvPoint & GpuInteractionSurfaceSize
 ): TAction | undefined {
-  return resolveGpuInteractionActionAtPoint(actions, {
+  return resolveGpuInteractionActionAtPoint(actions, resolveGpuInteractionPointFromUv(uv));
+}
+
+export function resolveGpuInteractionPointFromUv(
+  uv: GpuInteractionUvPoint & GpuInteractionSurfaceSize
+): GpuInteractionPoint {
+  return {
     x: uv.u * uv.width,
     y: uv.v * uv.height,
-  });
+  };
+}
+
+export function resolveGpuInteractionActionByEntityId<
+  TAction extends GpuInteractionSurfaceAction,
+>(
+  actions: readonly TAction[],
+  entityId: string,
+  surfaceId?: string
+): TAction | undefined {
+  return filterGpuInteractionActionsBySurface(actions, surfaceId).find((action) =>
+    matchesGpuInteractionEntityId(action, entityId)
+  );
+}
+
+export function resolveGpuInteractionActionFromHit<
+  TAction extends GpuInteractionSurfaceAction,
+>(
+  actions: readonly TAction[],
+  hit: GpuInteractionRenderHit,
+  surfaceSize?: GpuInteractionSurfaceSize
+): GpuInteractionResolvedHit<TAction> {
+  const point =
+    hit.point ??
+    (hit.uv !== undefined && surfaceSize !== undefined
+      ? resolveGpuInteractionPointFromUv({ ...hit.uv, ...surfaceSize })
+      : undefined);
+  const scopedActions = filterGpuInteractionActionsBySurface(actions, hit.surfaceId);
+  const action =
+    hit.kind === "surface"
+      ? (hit.entityId === undefined
+          ? undefined
+          : resolveGpuInteractionActionByEntityId(scopedActions, hit.entityId)) ??
+        (point === undefined ? undefined : resolveGpuInteractionActionAtPoint(scopedActions, point))
+      : undefined;
+
+  return {
+    hit,
+    ...(action === undefined ? {} : { action }),
+    ...(hit.entityId === undefined ? {} : { entityId: hit.entityId }),
+    ...(hit.surfaceId === undefined ? {} : { surfaceId: hit.surfaceId }),
+    ...(point === undefined ? {} : { point }),
+    ...(hit.uv === undefined ? {} : { uv: hit.uv }),
+  };
 }
 
 export function resolveGpuInteractionActionByPhrase<
@@ -171,6 +252,20 @@ export function resolveGpuInteractionActionByPhrase<
 
     return candidates.includes(normalizedPhrase);
   });
+}
+
+function filterGpuInteractionActionsBySurface<
+  TAction extends GpuInteractionSurfaceAction,
+>(actions: readonly TAction[], surfaceId?: string): readonly TAction[] {
+  return surfaceId === undefined
+    ? actions
+    : actions.filter((action) => action.surfaceId === surfaceId);
+}
+
+function matchesGpuInteractionEntityId<
+  TAction extends GpuInteractionEntityBinding,
+>(action: TAction, entityId: string): boolean {
+  return action.entityId === entityId || (action.entityIds?.includes(entityId) ?? false);
 }
 
 export function createGpuInteractionRegistry<

@@ -14,8 +14,11 @@ Renderer-specific code should resolve 3D geometry to either:
 
 - a surface-local pixel point, then call `resolveGpuInteractionActionAtPoint`
 - a UV coordinate plus surface size, then call `resolveGpuInteractionActionAtUv`
+- a normalized renderer hit record, then call `resolveGpuInteractionActionFromHit`
 
 The package stays independent from world matrices and camera projection so it can be used by WebGPU, XR, Canvas fallback, and future renderers.
+
+Renderer hit records may include `entityId`, `surfaceId`, source `point`, or source `uv`. The package preserves explicit non-action outcomes such as `miss`, `environment`, `emissive`, and `transparent` so consumers can branch on renderer semantics without reverse-engineering why an action did not resolve.
 
 ## Scripting
 
