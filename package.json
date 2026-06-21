@@ -1,6 +1,6 @@
 {
   "name": "@plasius/gpu-interaction",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Browser-safe interaction scripting contracts for 3D gpu-* surfaces.",
   "type": "module",
   "sideEffects": false,
