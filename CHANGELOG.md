@@ -16,6 +16,20 @@ All notable changes to this project will be documented in this file.
 - **Security**
   - (placeholder)
 
+## [0.1.3] - 2026-06-22
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
 ## [0.1.2] - 2026-06-21
 - add renderer-hit resolution helpers, explicit non-action hit classifications, and optional entity-id bindings for surface actions
 - bootstrap `@plasius/gpu-interaction` with typed action descriptors, surface hit regions, script dispatch, and voice phrase matching for `gpu-*` 3D UI surfaces
@@ -23,3 +37,4 @@ All notable changes to this project will be documented in this file.
 
 
 [0.1.2]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.2
+[0.1.3]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.3
