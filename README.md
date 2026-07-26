@@ -129,5 +129,15 @@ The canonical source repository is [`Plasius-LTD/gpu-interaction`](https://githu
 
 - Pull requests and pushes to `main` run `.github/workflows/ci.yml`.
 - npm publication is allowed only through `.github/workflows/cd.yml` on `main`.
-- `cd.yml` requires the `production` environment and an `NPM_TOKEN` secret.
+- `cd.yml` requires the `production` environment and its npm trusted-publisher binding.
 - Version changes should be committed to `main` before dispatching the publish workflow.
+
+<!-- BEGIN PLASIUS RELEASE INTEGRITY -->
+## Release integrity
+
+CI keeps the administrative contributor registry outside Git and npm package
+artifacts using exact, case-normalised path checks. CI runs on approved
+self-hosted runners. Release preparation and npm publication use GitHub-hosted
+runners with Node.js 24.18.0 LTS. CD remains disabled until the npm trusted
+publisher binding is verified and the legacy token fallback is removed.
+<!-- END PLASIUS RELEASE INTEGRITY -->
