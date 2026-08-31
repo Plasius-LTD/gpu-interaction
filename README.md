@@ -1,9 +1,12 @@
 # @plasius/gpu-interaction
 
 [![npm version](https://img.shields.io/npm/v/@plasius/gpu-interaction.svg)](https://www.npmjs.com/package/@plasius/gpu-interaction)
-[![CI](https://img.shields.io/github/actions/workflow/status/Plasius-LTD/gpu-interaction/ci.yml?branch=main&label=CI)](https://github.com/Plasius-LTD/gpu-interaction/actions/workflows/ci.yml)
-[![CD](https://img.shields.io/github/actions/workflow/status/Plasius-LTD/gpu-interaction/cd.yml?branch=main&label=CD)](https://github.com/Plasius-LTD/gpu-interaction/actions/workflows/cd.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Plasius-LTD/gpu-interaction/ci.yml?branch=main&label=build&style=flat)](https://github.com/Plasius-LTD/gpu-interaction/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/codecov/c/github/Plasius-LTD/gpu-interaction)](https://codecov.io/gh/Plasius-LTD/gpu-interaction)
 [![License](https://img.shields.io/github/license/Plasius-LTD/gpu-interaction)](./LICENSE)
+[![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-yes-blue.svg)](./CODE_OF_CONDUCT.md)
+[![Security Policy](https://img.shields.io/badge/security%20policy-yes-orange.svg)](./SECURITY.md)
+[![Changelog](https://img.shields.io/badge/changelog-md-blue.svg)](./CHANGELOG.md)
 
 Browser-safe interaction scripting contracts for Plasius `gpu-*` surfaces.
 
