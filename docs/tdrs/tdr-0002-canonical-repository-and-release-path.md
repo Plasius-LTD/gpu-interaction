@@ -27,7 +27,11 @@ The publish workflow must:
 
 - run from `main`
 - require the GitHub `production` environment
-- require `NPM_TOKEN`
+- use npm trusted publishing with no reusable write token or registry-auth
+  placeholder
+- validate and pack an immutable artifact outside the OIDC job
+- install the approved npm release client explicitly and recheck current
+  `main` before release mutation and npm publication
 - verify the package version is not already published
 - publish with npm provenance enabled
 
