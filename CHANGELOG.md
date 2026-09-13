@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
   - (placeholder)
 
 - **Security**
+  - Updated Vitest and its coverage adapter to 4.1.11, clearing the redirect-mock path traversal advisory.
   - Removed the npm write-token path, added a fail-closed npm 11.5.1-or-newer OIDC guard, and denied fork PR code access to self-hosted CI.
   - Pinned patched transitive npm dependencies to clear the current audit baseline.
   - Added fail-closed source and npm-package admission for the administrative contributor registry and pinned the CI/CD runtime to Node.js 24.18.0 LTS.
