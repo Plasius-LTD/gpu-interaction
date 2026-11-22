@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.9] - 2026-11-22
+
 - Refresh supported npm dependency and security tooling baselines; preserve runtime API contracts (weekly maintenance, 2026-11-22).
 
 - **Added**
@@ -133,3 +147,4 @@ All notable changes to this project will be documented in this file.
 [0.1.6]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.6
 [0.1.7]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.7
 [0.1.8]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.8
+[0.1.9]: https://github.com/Plasius-LTD/gpu-interaction/releases/tag/v0.1.9
